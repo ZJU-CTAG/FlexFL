@@ -1,0 +1,178 @@
+{
+    "dialog": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant of our Java software. You will be presented with a bug report, a trigger test and tools (functions) to access the source code of the system under test (SUT). Your task is to locate the top-5 most likely culprit methods based on the bug report, the trigger test and the information you retrieve using given functions. \nFunction calls you can use are as follows.\n* find_class(`class_name`) -> Find a class in the bug report by fuzzy search. `class_name` -> The name of the class. *\n* find_method(`method_name`) -> Find a method in the bug report by fuzzy search. `method_name` -> The name of the method. *\n* get_paths() -> Get the paths of the java software system. *\n* get_classes_of_path(`path_name`) -> Get the classes in the path of the java software system. `path_name` -> The accurate name of the path which can be accessed by function call `get_paths`. *\n* get_methods_of_class(`class_name`) -> Get the methods belonging to the class of the java software system. `class_name` -> The complete name of the class, for example `PathName.ClassName`. *\n* get_code_snippet_of_method(`method_name`) -> Get the code snippet of the java method. `method_name` -> The complete name of the java method, for example `PathName.ClassName.MethodName(ArgType1,ArgType2)`. *\n* exit() -> Exit function calling to give your final answer when you are confident of the answer. *\nYou have 9 chances to call function."
+        },
+        {
+            "role": "user",
+            "content": "The bug report is as follows:\n```\nTitle:External property polymorphic deserialization does not work with enums\nDescription:\nversions: Jackson 2.8.1, Jackson-module-kotlin 2.8.1\nAttempting to deserialize a class using external_property. In my case, the property is an Enum type with values matching the type name. Now that issue #999 is fixed, I thought this would work, but now I'm getting a different error:\nException in thread \"main\" com.fasterxml.jackson.databind.JsonMappingException: Can not construct instance of enum.Invite, problem: argument type mismatch\n at [Source: {\n  \"kind\": \"CONTACT\",\n  \"to\": {\n    \"name\": \"Foo\"\n  }\n}; line: 6, column: 1]\n    at com.fasterxml.jackson.databind.JsonMappingException.from(JsonMappingException.java:268)\n    at com.fasterxml.jackson.databind.DeserializationContext.instantiationException(DeserializationContext.java:1405)\n    at com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.wrapAsJsonMappingException(StdValueInstantiator.java:468)\n    at com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.rewrapCtorProblem(StdValueInstantiator.java:487)\n    at com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.createFromObjectWith(StdValueInstantiator.java:276)\n    at com.fasterxml.jackson.module.kotlin.KotlinValueInstantiator.createFromObjectWith(KotlinValueInstantiator.kt:30)\n    at com.fasterxml.jackson.databind.deser.impl.PropertyBasedCreator.build(PropertyBasedCreator.java:135)\n    at com.fasterxml.jackson.databind.deser.impl.ExternalTypeHandler.complete(ExternalTypeHandler.java:225)\n    at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserializeUsingPropertyBasedWithExternalTypeId(BeanDeserializer.java:937)\n    at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserializeWithExternalTypeId(BeanDeserializer.java:792)\n    at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserializeFromObject(BeanDeserializer.java:312)\n    at com.fasterxml.jackson.databind.deser.BeanDeserializer.deserialize(BeanDeserializer.java:148)\n    at com.fasterxml.jackson.databind.ObjectMapper._readMapAndClose(ObjectMapper.java:3789)\n    at com.fasterxml.jackson.databind.ObjectMapper.readValue(ObjectMapper.java:2852)\n    at enum.Reproduction_KindEnumKt.main(Reproduction-KindEnum.kt:49)\n    at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)\n    at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)\n    at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\n    at java.lang.reflect.Method.invoke(Method.java:498)\n    at com.intellij.rt.execution.application.AppMain.main(AppMain.java:147)\nCaused by: java.lang.IllegalArgumentException: argument type mismatch\n    at sun.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)\n    at sun.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:62)\n    at sun.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)\n    at java.lang.reflect.Constructor.newInstance(Constructor.java:423)\n    at com.fasterxml.jackson.databind.introspect.AnnotatedConstructor.call(AnnotatedConstructor.java:124)\n    at com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.createFromObjectWith(StdValueInstantiator.java:274)\n    ... 15 more\n\nProcess finished with exit code 1\n\nHere is the reproduction recipe: https://github.com/rocketraman/jackson-issue-enum-polymorphism/blob/master/src/main/kotlin/enumtype/Reproduction-KindEnum.kt\n\n```\nThe trigger test is as follows:\n```\npublic void testExample() throws Exception {\n        ObjectMapper mapper = new ObjectMapper();\n        \n        String json = mapper.writerWithDefaultPrettyPrinter()\n                .writeValueAsString(Arrays.asList(new AnimalAndType(AnimalType.Dog, new Dog())));\n        List<AnimalAndType> list = mapper.readerFor(new TypeReference<List<AnimalAndType>>() { })\nThe last line shown above failed with the following stack trace.\ncom.fasterxml.jackson.databind.exc.InvalidDefinitionException: Cannot construct instance of `com.fasterxml.jackson.databind.jsontype.ext.ExternalTypeIdWithEnum1328Test$AnimalAndType`, problem: argument type mismatch\n at [Source: (String)\"[ {\n\tat com.fasterxml.jackson.databind.exc.InvalidDefinitionException.from(InvalidDefinitionException.java:67)\n\tat com.fasterxml.jackson.databind.DeserializationContext.instantiationException(DeserializationContext.java:1601)\n\tat com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.wrapAsJsonMappingException(StdValueInstantiator.java:484)\n\tat com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.rewrapCtorProblem(StdValueInstantiator.java:503)\n\tat com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.createFromObjectWith(StdValueInstantiator.java:285)\n\tat com.fasterxml.jackson.databind.deser.ValueInstantiator.createFromObjectWith(ValueInstantiator.java:229)\n\tat com.fasterxml.jackson.databind.deser.impl.PropertyBasedCreator.build(PropertyBasedCreator.java:195)\n\tat com.fasterxml.jackson.databind.deser.impl.ExternalTypeHandler.complete(ExternalTypeHandler.java:302)\n\tat com.fasterxml.jackson.databind.deser.BeanDeserializer.deserializeUsingPropertyBasedWithExternalTypeId(BeanDeserializer.java:994)\n\tat com.fasterxml.jackson.databind.deser.BeanDeserializer.deserializeWithExternalTypeId(BeanDeserializer.java:846)\n\tat com.fasterxml.jackson.databind.deser.BeanDeserializer.deserializeFromObject(BeanDeserializer.java:324)\n\tat com.fasterxml.jackson.databind.deser.BeanDeserializer.deserialize(BeanDeserializer.java:159)\n\tat com.fasterxml.jackson.databind.deser.std.CollectionDeserializer.deserialize(CollectionDeserializer.java:286)\n\tat com.fasterxml.jackson.databind.deser.std.CollectionDeserializer.deserialize(CollectionDeserializer.java:245)\n\tat com.fasterxml.jackson.databind.deser.std.CollectionDeserializer.deserialize(CollectionDeserializer.java:27)\n\tat com.fasterxml.jackson.databind.ObjectReader._bindAndClose(ObjectReader.java:1611)\n\tat com.fasterxml.jackson.databind.ObjectReader.readValue(ObjectReader.java:1219)\n\tat com.fasterxml.jackson.databind.jsontype.ext.ExternalTypeIdWithEnum1328Test.testExample(ExternalTypeIdWithEnum1328Test.java:87)\n\tat com.fasterxml.jackson.databind.introspect.AnnotatedConstructor.call(AnnotatedConstructor.java:124)\n\tat com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.createFromObjectWith(StdValueInstantiator.java:283)\n```\nLet's locate the faulty method step by step using reasoning and function calls. Now reason and plan how to locate the buggy methods."
+        },
+        {
+            "role": "Assistant",
+            "content": "Based on the bug report and the trigger test, I can identify the following key points:\n\n1. The bug is related to external property polymorphic deserialization and enums.\n2. The error message indicates an \"argument type mismatch\" when trying to deserialize an enum value.\n3. The trigger test is trying to deserialize a list of `AnimalAndType` objects, which contains an enum value.\n\nTo locate the faulty method, I will start by analyzing the classes and methods involved in the deserialization process. I will use the `find_class` and `find_method` functions to search for classes and methods related to the bug report.\n\nFirst, I will search for classes related to the bug report:\n\n`classes = find_class(\"ExternalTypeIdWithEnum1328Test\")`\n\nThis will give me a list of classes related to the bug report. I will then search for methods in these classes that are related to deserialization:\n\n`methods = find_method(\"deserialize\")`\n\nThis will give me a list of methods that are related to deserialization. I will then analyze the code snippets of these methods to identify the faulty method.\n\nNext, I will use the `get_paths` function to get the paths of the Java software system:\n\n`paths = get_paths()`\n\nI will then use the `get_classes_of_path` function to get the classes in each path:\n\n`classes_of_path = get_classes_of_path(path_name)`\n\nI will then use the `get_methods_of_class` function to get the methods belonging to each class:\n\n`methods_of_class = get_methods_of_class(class_name)`\n\nI will then analyze the code snippets of these methods to identify the faulty method.\n\nI will use the `get_code_snippet_of_method` function to get the code snippet of each method:\n\n`code_snippet = get_code_snippet_of_method(method_name)`\n\nI will then analyze the code snippets to identify the faulty method.\n\nI will use the `exit` function to give my final answer when I am confident of the answer.\n\nI have 9 chances to call function."
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "find_class(\"ExternalTypeIdWithEnum1328Test\")"
+        },
+        {
+            "role": "user",
+            "content": "Do not find `ExternalTypeIdWithEnum1328Test` again because it is an invalid name. You can try the following names.\nExternalTypeHandler\nAsExternalTypeSerializer\nAsExternalTypeDeserializer\nExtTypedProperty\nAsArrayTypeSerializer"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "find_class(\"ExternalTypeHandler\")"
+        },
+        {
+            "role": "user",
+            "content": "com.fasterxml.jackson.databind.deser.impl.ExternalTypeHandler"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_methods_of_class(\"com.fasterxml.jackson.databind.deser.impl.ExternalTypeHandler\")"
+        },
+        {
+            "role": "user",
+            "content": "ExternalTypeHandler(ExternalTypeHandler)\nExternalTypeHandler(JavaType,ExtTypedProperty[],Map<String,Object>,String[],TokenBuffer[])\n_deserialize(JsonParser,DeserializationContext,int,String)\n_deserializeAndSet(JsonParser,DeserializationContext,Object,int,String)\n_handleTypePropertyValue(JsonParser,DeserializationContext,String,Object,String,int)\nbuilder(JavaType)\ncomplete(JsonParser,DeserializationContext,Object)\ncomplete(JsonParser,DeserializationContext,PropertyValueBuffer,PropertyBasedCreator)\nhandlePropertyValue(JsonParser,DeserializationContext,String,Object)\nhandleTypePropertyValue(JsonParser,DeserializationContext,String,Object)\nstart()"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_code_snippet_of_method(\"_deserialize(JsonParser,DeserializationContext,int,String)\")"
+        },
+        {
+            "role": "user",
+            "content": "Do you mean `com.fasterxml.jackson.databind.deser.impl.ExternalTypeHandler._deserialize(JsonParser,DeserializationContext,int,String)`? Its code snippet is as follows.\n@SuppressWarnings(\"resource\")\t    protected final Object _deserialize(JsonParser p, DeserializationContext ctxt,\t            int index, String typeId) throws IOException\t    {\t        JsonParser p2 = _tokens[index].asParser(p);\t        JsonToken t = p2.nextToken();\t        // 29-Sep-2015, tatu: As per [databind#942], nulls need special support\t        if (t == JsonToken.VALUE_NULL) {\t            return null;\t        }\t        TokenBuffer merged = new TokenBuffer(p, ctxt);\t        merged.writeStartArray();\t        merged.writeString(typeId);\t        merged.copyCurrentStructure(p2);\t        merged.writeEndArray();\t\t        // needs to point to START_OBJECT (or whatever first token is)\t        JsonParser mp = merged.asParser(p);\t        mp.nextToken();\t        return _properties[index].getProperty().deserialize(mp, ctxt);\t    }"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_methods_of_class(\"com.fasterxml.jackson.databind.deser.std.StdValueInstantiator\")"
+        },
+        {
+            "role": "user",
+            "content": "StdValueInstantiator(DeserializationConfig,Class<?>)\nStdValueInstantiator(DeserializationConfig,JavaType)\nStdValueInstantiator(StdValueInstantiator)\n_createUsingDelegate(AnnotatedWithParams,SettableBeanProperty[],DeserializationContext,Object)\ncanCreateFromBoolean()\ncanCreateFromDouble()\ncanCreateFromInt()\ncanCreateFromLong()\ncanCreateFromObjectWith()\ncanCreateFromString()\ncanCreateUsingArrayDelegate()\ncanCreateUsingDefault()\ncanCreateUsingDelegate()\ncanInstantiate()\nconfigureFromArraySettings(AnnotatedWithParams,JavaType,SettableBeanProperty[])\nconfigureFromBooleanCreator(AnnotatedWithParams)\nconfigureFromDoubleCreator(AnnotatedWithParams)\nconfigureFromIntCreator(AnnotatedWithParams)\nconfigureFromLongCreator(AnnotatedWithParams)\nconfigureFromObjectSettings(AnnotatedWithParams,AnnotatedWithParams,JavaType,SettableBeanProperty[],AnnotatedWithParams,SettableBeanProperty[])\nconfigureFromStringCreator(AnnotatedWithParams)\nconfigureIncompleteParameter(AnnotatedParameter)\ncreateFromBoolean(DeserializationContext,boolean)\ncreateFromDouble(DeserializationContext,double)\ncreateFromInt(DeserializationContext,int)\ncreateFromLong(DeserializationContext,long)\ncreateFromObjectWith(DeserializationContext,Object[])\ncreateFromString(DeserializationContext,String)\ncreateUsingArrayDelegate(DeserializationContext,Object)\ncreateUsingDefault(DeserializationContext)\ncreateUsingDelegate(DeserializationContext,Object)\ngetArrayDelegateCreator()\ngetArrayDelegateType(DeserializationConfig)\ngetDefaultCreator()\ngetDelegateCreator()\ngetDelegateType(DeserializationConfig)\ngetFromObjectArguments(DeserializationConfig)\ngetIncompleteParameter()\ngetValueClass()\ngetValueTypeDesc()\ngetWithArgsCreator()\nrewrapCtorProblem(DeserializationContext,Throwable)\nunwrapAndWrapException(DeserializationContext,Throwable)\nwrapAsJsonMappingException(DeserializationContext,Throwable)\nwrapException(Throwable)"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_code_snippet_of_method(\"createFromObjectWith(DeserializationContext,Object[])\")"
+        },
+        {
+            "role": "user",
+            "content": "You provide a wrong method name. Please try the following method names.\ncom.fasterxml.jackson.databind.deser.ValueInstantiator.createFromObjectWith(DeserializationContext,Object[])\ncom.fasterxml.jackson.databind.deser.std.StdValueInstantiator.createFromObjectWith(DeserializationContext,Object[])\ncom.fasterxml.jackson.databind.deser.std.JsonLocationInstantiator.createFromObjectWith(DeserializationContext,Object[])"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_code_snippet_of_method(\"com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.createFromObjectWith(DeserializationContext,Object[])\")"
+        },
+        {
+            "role": "user",
+            "content": "@Override\t    public Object createFromObjectWith(DeserializationContext ctxt, Object[] args) throws IOException\t    {\t        if (_withArgsCreator == null) { // sanity-check; caller should check\t            return super.createFromObjectWith(ctxt, args);\t        }\t        try {\t            return _withArgsCreator.call(args);\t        } catch (Exception e) { // 19-Apr-2017, tatu: Let's not catch Errors, just Exceptions\t            return ctxt.handleInstantiationProblem(_valueClass, args, rewrapCtorProblem(ctxt, e));\t        }\t    }"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "exit()"
+        },
+        {
+            "role": "user",
+            "content": "Based on the available information, provide complete name of the top-5 most likely culprit methods for the bug please. Since your answer will be processed automatically, please give your answer in the format as follows.\nTop_1 : PathName.ClassName.MethodName(ArgType1, ArgType2)\nTop_2 : PathName.ClassName.MethodName(ArgType1, ArgType2)\nTop_3 : PathName.ClassName.MethodName(ArgType1, ArgType2)\nTop_4 : PathName.ClassName.MethodName(ArgType1, ArgType2)\nTop_5 : PathName.ClassName.MethodName(ArgType1, ArgType2)\n"
+        },
+        {
+            "role": "Assistant",
+            "content": "Top_1 : com.fasterxml.jackson.databind.deser.impl.ExternalTypeHandler._deserialize(JsonParser, DeserializationContext, int, String)\nTop_2 : com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.createFromObjectWith(DeserializationContext, Object[])\nTop_3 : com.fasterxml.jackson.databind.deser.std.JsonLocationInstantiator.createFromObjectWith(DeserializationContext, Object[])\nTop_4 : com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.rewrapCtorProblem(DeserializationContext, Throwable)\nTop_5 : com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.wrapAsJsonMappingException(DeserializationContext, Throwable)"
+        }
+    ],
+    "UQ": [
+        {
+            "content": "Based on the bug report and the trigger test, I can identify the following key points:\n\n1. The bug is related to external property polymorphic deserialization and enums.\n2. The error message indicates an \"argument type mismatch\" when trying to deserialize an enum value.\n3. The trigger test is trying to deserialize a list of `AnimalAndType` objects, which contains an enum value.\n\nTo locate the faulty method, I will start by analyzing the classes and methods involved in the deserialization process. I will use the `find_class` and `find_method` functions to search for classes and methods related to the bug report.\n\nFirst, I will search for classes related to the bug report:\n\n`classes = find_class(\"ExternalTypeIdWithEnum1328Test\")`\n\nThis will give me a list of classes related to the bug report. I will then search for methods in these classes that are related to deserialization:\n\n`methods = find_method(\"deserialize\")`\n\nThis will give me a list of methods that are related to deserialization. I will then analyze the code snippets of these methods to identify the faulty method.\n\nNext, I will use the `get_paths` function to get the paths of the Java software system:\n\n`paths = get_paths()`\n\nI will then use the `get_classes_of_path` function to get the classes in each path:\n\n`classes_of_path = get_classes_of_path(path_name)`\n\nI will then use the `get_methods_of_class` function to get the methods belonging to each class:\n\n`methods_of_class = get_methods_of_class(class_name)`\n\nI will then analyze the code snippets of these methods to identify the faulty method.\n\nI will use the `get_code_snippet_of_method` function to get the code snippet of each method:\n\n`code_snippet = get_code_snippet_of_method(method_name)`\n\nI will then analyze the code snippets to identify the faulty method.\n\nI will use the `exit` function to give my final answer when I am confident of the answer.\n\nI have 9 chances to call function.",
+            "perplexity": 1.1647310208685888,
+            "max_token_neglogp": 1.3850876092910767,
+            "response_improbability": 1.0
+        },
+        {
+            "content": "find_class(\"ExternalTypeIdWithEnum1328Test\")",
+            "perplexity": 1.011795773004741,
+            "max_token_neglogp": 0.1010587140917778,
+            "response_improbability": 0.13126829561242892
+        },
+        {
+            "content": "find_class(\"ExternalTypeHandler\")",
+            "perplexity": 1.0217150278364886,
+            "max_token_neglogp": 0.09120532125234604,
+            "response_improbability": 0.15790371734047104
+        },
+        {
+            "content": "get_methods_of_class(\"com.fasterxml.jackson.databind.deser.impl.ExternalTypeHandler\")",
+            "perplexity": 1.0248019785108988,
+            "max_token_neglogp": 0.3155747652053833,
+            "response_improbability": 0.3566003705716626
+        },
+        {
+            "content": "get_code_snippet_of_method(\"_deserialize(JsonParser,DeserializationContext,int,String)\")",
+            "perplexity": 1.034090461536302,
+            "max_token_neglogp": 0.34846609830856323,
+            "response_improbability": 0.45305151935743626
+        },
+        {
+            "content": "get_methods_of_class(\"com.fasterxml.jackson.databind.deser.std.StdValueInstantiator\")",
+            "perplexity": 1.0979600276869492,
+            "max_token_neglogp": 0.48113277554512024,
+            "response_improbability": 0.8140301806183311
+        },
+        {
+            "content": "get_code_snippet_of_method(\"createFromObjectWith(DeserializationContext,Object[])\")",
+            "perplexity": 1.1535814999243723,
+            "max_token_neglogp": 0.8935360312461853,
+            "response_improbability": 0.9337657488852389
+        },
+        {
+            "content": "get_code_snippet_of_method(\"com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.createFromObjectWith(DeserializationContext,Object[])\")",
+            "perplexity": 1.0102195996873116,
+            "max_token_neglogp": 0.09237530082464218,
+            "response_improbability": 0.25536733322261973
+        },
+        {
+            "content": "exit()",
+            "perplexity": 1.1047181429358708,
+            "max_token_neglogp": 0.2825438380241394,
+            "response_improbability": 0.25827051999883954
+        },
+        {
+            "content": "Top_1 : com.fasterxml.jackson.databind.deser.impl.ExternalTypeHandler._deserialize(JsonParser, DeserializationContext, int, String)\nTop_2 : com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.createFromObjectWith(DeserializationContext, Object[])\nTop_3 : com.fasterxml.jackson.databind.deser.std.JsonLocationInstantiator.createFromObjectWith(DeserializationContext, Object[])\nTop_4 : com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.rewrapCtorProblem(DeserializationContext, Throwable)\nTop_5 : com.fasterxml.jackson.databind.deser.std.StdValueInstantiator.wrapAsJsonMappingException(DeserializationContext, Throwable)",
+            "perplexity": 1.0491040301963517,
+            "max_token_neglogp": 1.1460500955581665,
+            "response_improbability": 0.998297323540369
+        }
+    ]
+}

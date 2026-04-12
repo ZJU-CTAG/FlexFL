@@ -1,0 +1,214 @@
+{
+    "dialog": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant of our Java software. You will be presented with a bug report, a trigger test and tools (functions) to access the source code of the system under test (SUT). Your task is to locate the top-5 most likely culprit methods based on the bug report, the trigger test and the information you retrieve using given functions. \nFunction calls you can use are as follows.\n* find_class(`class_name`) -> Find a class in the bug report by fuzzy search. `class_name` -> The name of the class. *\n* find_method(`method_name`) -> Find a method in the bug report by fuzzy search. `method_name` -> The name of the method. *\n* get_paths() -> Get the paths of the java software system. *\n* get_classes_of_path(`path_name`) -> Get the classes in the path of the java software system. `path_name` -> The accurate name of the path which can be accessed by function call `get_paths`. *\n* get_methods_of_class(`class_name`) -> Get the methods belonging to the class of the java software system. `class_name` -> The complete name of the class, for example `PathName.ClassName`. *\n* get_code_snippet_of_method(`method_name`) -> Get the code snippet of the java method. `method_name` -> The complete name of the java method, for example `PathName.ClassName.MethodName(ArgType1,ArgType2)`. *\n* exit() -> Exit function calling to give your final answer when you are confident of the answer. *\nYou have 10 chances to call function."
+        },
+        {
+            "role": "user",
+            "content": "The bug report is as follows:\n```\nTitle:RETURNS_DEEP_STUBS automatically tries to create serializable mocks\nDescription:\nI am just migrating from mockito 1.9.5 to 1.10.5\nThe following code runs fine with version 1.9.5. but breaks now:\n  @Test\n  public void test() {\n    ToBeMocked mock = mock(ToBeMocked.class, RETURNS_DEEP_STUBS);\n    assertThat(mock.getSomething()).isNotNull();\n  }\n\n  public static class ToBeMocked {\n\n    NotSerializableReturnValue field1;\n\n    public ToBeMocked(NotSerializableReturnValue field1) {\n      this.field1 = field1;\n    }\n\n    public NotSerializableReturnValue getSomething() {\n      return field1;\n    }\n  }\n\n  public static class NotSerializableReturnValue {\n\n    String field1 = \"\";\n\n    public NotSerializableReturnValue(String field1) {\n      this.field1 = field1;\n    }\n\n    public String getSomething2() {\n      return field1;\n    }\n  }\norg.mockito.exceptions.base.MockitoException:\nYou are using the setting 'withSettings().serializable()' however the type you are trying to mock 'NotSerializableReturnValue'\ndo not implement Serializable AND do not have a no-arg constructor.\n\n```\nThe trigger test is as follows:\n```\npublic void should_not_raise_a_mockito_exception_about_serialization_when_accessing_deep_stub() {\n        NotSerializableShouldBeMocked the_deep_stub = mock(ToBeDeepStubbed.class, RETURNS_DEEP_STUBS).getSomething();\nThe last line shown above failed with the following stack trace.\norg.mockito.exceptions.base.MockitoException: \nAlso note that as requested by the Java serialization specification, the whole hierarchy need to implements Serializable,\n\tat org.mockito.exceptions.Reporter.serializableWontWorkForObjectsThatDontImplementSerializable(Reporter.java:760)\n\tat org.mockito.internal.util.MockCreationValidator.validateSerializable(MockCreationValidator.java:63)\n\tat org.mockito.internal.creation.MockSettingsImpl.validatedSettings(MockSettingsImpl.java:154)\n\tat org.mockito.internal.creation.MockSettingsImpl.confirm(MockSettingsImpl.java:141)\n\tat org.mockito.internal.MockitoCore.mock(MockitoCore.java:58)\n\tat org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs.newDeepStubMock(ReturnsDeepStubs.java:88)\n\tat org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs.deepStub(ReturnsDeepStubs.java:71)\n\tat org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs.answer(ReturnsDeepStubs.java:55)\n\tat org.mockito.internal.handler.MockHandlerImpl.handle(MockHandlerImpl.java:93)\n\tat org.mockito.internal.handler.NullResultGuardian.handle(NullResultGuardian.java:29)\n\tat org.mockito.internal.handler.InvocationNotifierHandler.handle(InvocationNotifierHandler.java:38)\n\tat org.mockito.internal.creation.MethodInterceptorFilter.intercept(MethodInterceptorFilter.java:61)\n\tat org.mockitousage.bugs.DeepStubsWronglyReportsSerializationProblemsTest$ToBeDeepStubbed$$EnhancerByMockitoWithCGLIB$$83cd564c.getSomething(<generated>)\n\tat org.mockitousage.bugs.DeepStubsWronglyReportsSerializationProblemsTest.should_not_raise_a_mockito_exception_about_serialization_when_accessing_deep_stub(DeepStubsWronglyReportsSerializationProblemsTest.java:16)\n```\nLet's locate the faulty method step by step using reasoning and function calls. Now reason and plan how to locate the buggy methods."
+        },
+        {
+            "role": "Assistant",
+            "content": "Based on the bug report and the trigger test, I can identify the following key points:\n\n1. The issue is related to the `RETURNS_DEEP_STUBS` setting in Mockito, which tries to create serializable mocks.\n2. The problem occurs when trying to mock a class that does not implement `Serializable` and does not have a no-arg constructor.\n3. The trigger test is trying to access a deep stub, which is likely to be the root cause of the issue.\n\nTo locate the faulty method, I plan to follow these steps:\n\n1. Identify the classes involved in the bug report and the trigger test.\n2. Find the methods that are related to the `RETURNS_DEEP_STUBS` setting and the creation of serializable mocks.\n3. Analyze the code snippets of these methods to understand how they are used and what they do.\n\nUsing the provided functions, I will call:\n\n1. `find_class(\"ToBeMocked\")` to find the class `ToBeMocked` in the bug report.\n2. `find_class(\"NotSerializableReturnValue\")` to find the class `NotSerializableReturnValue` in the bug report.\n3. `get_methods_of_class(\"ToBeMocked\")` to get the methods of the class `ToBeMocked`.\n4. `get_methods_of_class(\"NotSerializableReturnValue\")` to get the methods of the class `NotSerializableReturnValue`.\n5. `get_code_snippet_of_method(\"mock(ToBeMocked.class, RETURNS_DEEP_STUBS)\")` to get the code snippet of the method that is trying to create a deep stub.\n6. `get_code_snippet_of_method(\"getSomething()\")` to get the code snippet of the method that is trying to access the deep stub.\n\nAfter analyzing the code snippets, I will be able to identify the faulty method and provide a more detailed answer."
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "find_class(\"ToBeMocked\")"
+        },
+        {
+            "role": "user",
+            "content": "Do not find `ToBeMocked` again because it is an invalid name. You can try the following names.\nBDDMockito\nReporter\nChecks\nMockito\nTimeout"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "find_class(\"Mockito\")"
+        },
+        {
+            "role": "user",
+            "content": "org.mockito.Mockito"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_paths()"
+        },
+        {
+            "role": "user",
+            "content": "org.mockito\norg.mockito.configuration\norg.mockito.exceptions\norg.mockito.exceptions.base\norg.mockito.exceptions.misusing\norg.mockito.exceptions.verification\norg.mockito.exceptions.verification.junit\norg.mockito.internal\norg.mockito.internal.configuration\norg.mockito.internal.configuration.injection\norg.mockito.internal.configuration.injection.filter\norg.mockito.internal.configuration.injection.scanner\norg.mockito.internal.creation\norg.mockito.internal.creation.cglib\norg.mockito.internal.creation.jmock\norg.mockito.internal.creation.settings\norg.mockito.internal.debugging\norg.mockito.internal.exceptions\norg.mockito.internal.exceptions.stacktrace\norg.mockito.internal.exceptions.util\norg.mockito.internal.handler\norg.mockito.internal.invocation\norg.mockito.internal.invocation.finder\norg.mockito.internal.invocation.realmethod\norg.mockito.internal.junit\norg.mockito.internal.listeners\norg.mockito.internal.matchers\norg.mockito.internal.matchers.apachecommons\norg.mockito.internal.progress\norg.mockito.internal.reporting\norg.mockito.internal.rules\norg.mockito.internal.runners\norg.mockito.internal.runners.util\norg.mockito.internal.stubbing\norg.mockito.internal.stubbing.answers\norg.mockito.internal.stubbing.defaultanswers\norg.mockito.internal.util\norg.mockito.internal.util.collections\norg.mockito.internal.util.junit\norg.mockito.internal.util.reflection\norg.mockito.internal.verification\norg.mockito.internal.verification.api\norg.mockito.internal.verification.argumentmatching\norg.mockito.internal.verification.checkers\norg.mockito.junit\norg.mockito.runners\norg.mockito.stubbing.answers\norg.mockito.verification"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_classes_of_path(\"org.mockito\")"
+        },
+        {
+            "role": "user",
+            "content": "AbstractMockitoMethodProxy\nAccessibilityChanger\nAcrossJVMSerializationFeature\nAcrossJVMSerializationFeature.AcrossJVMMockSerializationProxy\nAcrossJVMSerializationFeature.MockitoMockObjectInputStream\nAcrossJVMSerializationFeature.MockitoMockObjectOutputStream\nAdditionalAnswers\nAdditionalMatchers\nAfter\nAllInvocationsFinder\nAllInvocationsFinder.SequenceNumberComparator\nAnd\nAnswerReturnValuesAdapter\nAnswersValidator\nAny\nAnyVararg\nArgumentCaptor\nArgumentMatcher\nArgumentMatcherStorageImpl\nArgumentMatchingTool\nArgumentsAreDifferent\nArgumentsComparator\nArgumentsProcessor\nArrayEquals\nArrayUtils\nAtLeast\nAtLeastDiscrepancy\nAtLeastXNumberOfInvocationsChecker\nAtLeastXNumberOfInvocationsInOrderChecker\nAtMost\nBDDMockito\nBDDMockito.BDDOngoingStubbingImpl\nBDDMockito.BDDStubberImpl\nBDDMockito.Then\nBaseStubbing\nBeanPropertySetter\nCGLIBHacker\nCGLIBProxyRealMethod\nCalls\nCallsRealMethods\nCannotStubVoidMethodWithReturnValue\nCannotVerifyStubOnlyMock\nCaptorAnnotationProcessor\nCapturingMatcher\nCglibMockMaker\nChecks\nClassImposterizer\nClassPathLoader\nClonesArguments\nCollectCreatedMocks\nCompareEqual\nCompareTo\nConditionalStackTraceFilter\nConsecutiveStubbing\nConsoleMockitoLogger\nConsoleSpammingMockitoJUnitRunner\nConstructorInjection\nConstructorInjection.SimpleArgumentResolver\nConstructors\nContains\nCreationSettings\nDecamelizer\nDefaultAnnotationEngine\nDefaultInjectionEngine\nDefaultMockingDetails\nDefaultMockitoConfiguration\nDefaultRegisteredInvocations\nDefaultRegisteredInvocations.RemoveToString\nDefaultStackTraceCleaner\nDefaultStackTraceCleanerProvider\nDelegatingMethod\nDelegatingMockitoMethodProxy\nDiscrepancy\nDoesNothing\nEndsWith\nEquality\nEquals\nEqualsBuilder\nEqualsWithDelta\nExceptionIncludingMockitoWarnings\nFieldCopier\nFieldInitializationReport\nFieldInitializer\nFieldInitializer.NoArgConstructorInstantiator\nFieldInitializer.ParameterizedConstructorInstantiator\nFieldReader\nFieldSetter\nFields\nFields.InstanceFields\nFilteredCGLIBProxyRealMethod\nFinalMockCandidateFilter\nFind\nForwardsInvocations\nFrameworkUsageValidator\nFriendlyReminderException\nGenericMaster\nGenericMetadataSupport\nGenericMetadataSupport.FromClassGenericMetadataSupport\nGenericMetadataSupport.FromParameterizedTypeGenericMetadataSupport\nGenericMetadataSupport.NotGenericReturnTypeSupport\nGenericMetadataSupport.ParameterizedReturnType\nGenericMetadataSupport.TypeVarBoundedType\nGenericMetadataSupport.TypeVariableReturnType\nGenericMetadataSupport.WildCardBoundedType\nGlobalConfiguration\nGloballyConfiguredAnswer\nGreaterOrEqual\nGreaterThan\nHandyReturnValues\nHashCodeAndEqualsMockWrapper\nHashCodeAndEqualsSafeSet\nIdentitySet\nInOrderContextImpl\nInOrderImpl\nInOrderWrapper\nInjectMocksScanner\nInjectingAnnotationEngine\nInstanceField\nInstanceOf\nInvalidUseOfMatchersException\nInvocationContainerImpl\nInvocationImpl\nInvocationMarker\nInvocationMatcher\nInvocationNotifierHandler\nInvocationsFinder\nInvocationsFinder.RemoveNotMatching\nInvocationsFinder.RemoveUnverifiedInOrder\nJUnit44RunnerImpl\nJUnit45AndHigherRunnerImpl\nJUnitFailureHacker\nJUnitRule\nJUnitTool\nLenientCopyTool\nLessOrEqual\nLessThan\nListUtil\nLocalized\nLocalizedMatcher\nLocationImpl\nLoggingListener\nMatchers\nMatchersBinder\nMatchersPrinter\nMatches\nMethodInfo\nMethodInterceptorFilter\nMissingInvocationChecker\nMissingInvocationInOrderChecker\nMissingMethodInvocationException\nMockAnnotationProcessor\nMockAwareVerificationMode\nMockCreationValidator\nMockHandlerFactory\nMockHandlerImpl\nMockInjection\nMockInjection.OngoingMockInjection\nMockInjectionStrategy\nMockNameImpl\nMockScanner\nMockSettingsImpl\nMockUtil\nMockingProgressImpl\nMockito\nMockitoAnnotations\nMockitoAnnotationsMockAnnotationProcessor\nMockitoAssertionError\nMockitoConfigurationException\nMockitoCore\nMockitoDebuggerImpl\nMockitoException\nMockitoJUnit44Runner\nMockitoJUnitRule\nMockitoJUnitRunner\nMockitoNamingPolicy\nMockitoSerializationIssue\nNameBasedCandidateFilter\nNeverWantedButInvoked\nNoInteractionsWanted\nNoMoreInteractions\nNonGreedyNumberOfInvocationsInOrderChecker\nNot\nNotAMockException\nNotNull\nNotifiedMethodInvocationReport\nNull\nNullInsteadOfMockException\nNullResultGuardian\nNumberOfInvocationsChecker\nNumberOfInvocationsInOrderChecker\nObjectMethodsGuru\nOngoingStubbingImpl\nOnly\nOr\nPluralizer\nPrimitives\nPrintSettings\nPropertyAndSetterInjection\nPropertyAndSetterInjection.FieldTypeAndNameComparator\nReflectionEquals\nRemoveFirstLine\nReporter\nReturns\nReturnsArgumentAt\nReturnsDeepStubs\nReturnsDeepStubs.DeeplyStubbedAnswer\nReturnsDeepStubs.ReturnsDeepStubsSerializationFallback\nReturnsElementsOf\nReturnsEmptyValues\nReturnsMocks\nReturnsMoreEmptyValues\nReturnsSmartNulls\nReturnsSmartNulls.ThrowsSmartNullPointer\nRunnerFactory\nRunnerProvider\nSame\nScenarioPrinter\nSearchingClassLoader\nSequenceNumber\nSerializableMethod\nSerializableMockitoMethodProxy\nSets\nSimpleMockitoLogger\nSingleRegisteredInvocation\nSmartNullPointerException\nSmartPrinter\nSpyAnnotationEngine\nSpyOnInjectedFieldsHandler\nStackTraceFilter\nStartsWith\nStringJoiner\nStubInfoImpl\nStubbedInvocationMatcher\nStubberImpl\nTestMethodsFinder\nThreadSafeMockingProgress\nThrowsException\nThrowsExceptionClass\nTimeout\nTimer\nTimes\nTooLittleActualInvocations\nTooManyActualInvocations\nTypeBasedCandidateFilter\nUnfinishedStubbingException\nUnfinishedVerificationException\nUnusedStubsFinder\nVarargCapturingMatcher\nVerboseMockInvocationLogger\nVerboseMockitoJUnitRunner\nVerifiableInvocationsFinder\nVerifiableInvocationsFinder.RemoveIgnoredForVerification\nVerificationDataImpl\nVerificationDataInOrderImpl\nVerificationInOrderFailure\nVerificationModeFactory\nVerificationOverTimeImpl\nVerificationWrapper\nVoidMethodStubbableImpl\nWantedButNotInvoked\nWarningsCollector\nWarningsFinder\nWarningsPrinterImpl\nWhitebox\nWrongTypeOfReturnValue"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_methods_of_class(\"org.mockito.Mockito\")"
+        },
+        {
+            "role": "user",
+            "content": "after(int)\natLeast(int)\natLeastOnce()\natMost(int)\ncalls(int)\ndebug()\ndoAnswer(Answer)\ndoCallRealMethod()\ndoNothing()\ndoReturn(Object)\ndoThrow(Class<? extends Throwable>)\ndoThrow(Throwable)\nignoreStubs(Object)\ninOrder(Object)\nmock(Class<T>)\nmock(Class<T>,Answer)\nmock(Class<T>,MockSettings)\nmock(Class<T>,ReturnValues)\nmock(Class<T>,String)\nmockingDetails(Object)\nnever()\nonly()\nreset(T)\nspy(T)\nstub(T)\nstubVoid(T)\ntimeout(long)\ntimes(int)\nvalidateMockitoUsage()\nverify(T)\nverify(T,VerificationMode)\nverifyNoMoreInteractions(Object)\nverifyZeroInteractions(Object)\nwhen(T)\nwithSettings()"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_code_snippet_of_method(\"mock(ToBeMocked.class, RETURNS_DEEP_STUBS)\")"
+        },
+        {
+            "role": "user",
+            "content": "You provide a wrong method name. Please try the following method names.\norg.mockito.Mockito.spy(T)\norg.mockito.Matchers.eq(T)\norg.mockito.BDDMockito.given(T)\norg.mockito.BDDMockito.then(T)\norg.mockito.Mockito.stub(T)"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_code_snippet_of_method(\"org.mockito.Mockito.mock(ToBeMocked.class, RETURNS_DEEP_STUBS)\")"
+        },
+        {
+            "role": "user",
+            "content": "You provide a wrong method name. Please try the following method names.\norg.mockito.Mockito.mock(Class<T>,String)\norg.mockito.Mockito.mock(Class<T>)\norg.mockito.Mockito.mock(Class<T>,ReturnValues)\norg.mockito.Mockito.mock(Class<T>,Answer)\norg.mockito.Mockito.mock(Class<T>,MockSettings)"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_code_snippet_of_method(\"org.mockito.Mockito.mock(ToBeMocked.class, RETURNS_DEEP_STUBS)\")"
+        },
+        {
+            "role": "user",
+            "content": "You provide a wrong method name. Please try the following method names.\norg.mockito.Mockito.mock(Class<T>,String)\norg.mockito.Mockito.mock(Class<T>)\norg.mockito.Mockito.mock(Class<T>,ReturnValues)\norg.mockito.Mockito.mock(Class<T>,Answer)\norg.mockito.Mockito.mock(Class<T>,MockSettings)"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "get_code_snippet_of_method(\"org.mockito.Mockito.mock(ToBeMocked.class)\")"
+        },
+        {
+            "role": "user",
+            "content": "Do you mean `org.mockito.Mockito.mock(Class<T>)`? Its code snippet is as follows.\n/**\t     * Creates mock object of given class or interface.\t     * <p>\t     * See examples in javadoc for {@link Mockito} class\t     *\t     * @param classToMock class or interface to mock\t     * @return mock object\t     */\t    public static <T> T mock(Class<T> classToMock) {\t        return mock(classToMock, withSettings().defaultAnswer(RETURNS_DEFAULTS));\t    }"
+        },
+        {
+            "role": "user",
+            "content": "Now call a function in this format `FunctionName(Argument)` in a single line without any other word."
+        },
+        {
+            "role": "Assistant",
+            "content": "exit()"
+        },
+        {
+            "role": "user",
+            "content": "Based on the available information, provide complete name of the top-5 most likely culprit methods for the bug please. Since your answer will be processed automatically, please give your answer in the format as follows.\nTop_1 : PathName.ClassName.MethodName(ArgType1, ArgType2)\nTop_2 : PathName.ClassName.MethodName(ArgType1, ArgType2)\nTop_3 : PathName.ClassName.MethodName(ArgType1, ArgType2)\nTop_4 : PathName.ClassName.MethodName(ArgType1, ArgType2)\nTop_5 : PathName.ClassName.MethodName(ArgType1, ArgType2)\n"
+        },
+        {
+            "role": "Assistant",
+            "content": "Top_1 : org.mockito.Mockito.mock(ToBeMocked.class)\nTop_2 : org.mockito.Mockito.mock(ToBeMocked.class, RETURNS_DEEP_STUBS)\nTop_3 : org.mockito.Mockito.mock(ToBeMocked.class, Answer)\nTop_4 : org.mockito.Mockito.mock(ToBeMocked.class, ReturnValues)\nTop_5 : org.mockito.Mockito.mock(ToBeMocked.class, MockSettings)"
+        }
+    ],
+    "UQ": [
+        {
+            "content": "Based on the bug report and the trigger test, I can identify the following key points:\n\n1. The issue is related to the `RETURNS_DEEP_STUBS` setting in Mockito, which tries to create serializable mocks.\n2. The problem occurs when trying to mock a class that does not implement `Serializable` and does not have a no-arg constructor.\n3. The trigger test is trying to access a deep stub, which is likely to be the root cause of the issue.\n\nTo locate the faulty method, I plan to follow these steps:\n\n1. Identify the classes involved in the bug report and the trigger test.\n2. Find the methods that are related to the `RETURNS_DEEP_STUBS` setting and the creation of serializable mocks.\n3. Analyze the code snippets of these methods to understand how they are used and what they do.\n\nUsing the provided functions, I will call:\n\n1. `find_class(\"ToBeMocked\")` to find the class `ToBeMocked` in the bug report.\n2. `find_class(\"NotSerializableReturnValue\")` to find the class `NotSerializableReturnValue` in the bug report.\n3. `get_methods_of_class(\"ToBeMocked\")` to get the methods of the class `ToBeMocked`.\n4. `get_methods_of_class(\"NotSerializableReturnValue\")` to get the methods of the class `NotSerializableReturnValue`.\n5. `get_code_snippet_of_method(\"mock(ToBeMocked.class, RETURNS_DEEP_STUBS)\")` to get the code snippet of the method that is trying to create a deep stub.\n6. `get_code_snippet_of_method(\"getSomething()\")` to get the code snippet of the method that is trying to access the deep stub.\n\nAfter analyzing the code snippets, I will be able to identify the faulty method and provide a more detailed answer.",
+            "perplexity": 1.1705571155410397,
+            "max_token_neglogp": 1.5982400178909302,
+            "response_improbability": 1.0
+        },
+        {
+            "content": "find_class(\"ToBeMocked\")",
+            "perplexity": 1.0022980933248127,
+            "max_token_neglogp": 0.014419402927160263,
+            "response_improbability": 0.020447173283697384
+        },
+        {
+            "content": "find_class(\"Mockito\")",
+            "perplexity": 1.16471200153535,
+            "max_token_neglogp": 0.5349791049957275,
+            "response_improbability": 0.6560699317746959
+        },
+        {
+            "content": "get_paths()",
+            "perplexity": 1.1072742936060342,
+            "max_token_neglogp": 0.3072149455547333,
+            "response_improbability": 0.3347588126095655
+        },
+        {
+            "content": "get_classes_of_path(\"org.mockito\")",
+            "perplexity": 1.050335679422422,
+            "max_token_neglogp": 0.2484392672777176,
+            "response_improbability": 0.3572428249788643
+        },
+        {
+            "content": "get_methods_of_class(\"org.mockito.Mockito\")",
+            "perplexity": 1.0620382178685834,
+            "max_token_neglogp": 0.46776604652404785,
+            "response_improbability": 0.4522296168308305
+        },
+        {
+            "content": "get_code_snippet_of_method(\"mock(ToBeMocked.class, RETURNS_DEEP_STUBS)\")",
+            "perplexity": 1.0525977348142033,
+            "max_token_neglogp": 0.6986371874809265,
+            "response_improbability": 0.6924157559035412
+        },
+        {
+            "content": "get_code_snippet_of_method(\"org.mockito.Mockito.mock(ToBeMocked.class, RETURNS_DEEP_STUBS)\")",
+            "perplexity": 1.057445023920544,
+            "max_token_neglogp": 0.7223862409591675,
+            "response_improbability": 0.7659561381800448
+        },
+        {
+            "content": "get_code_snippet_of_method(\"org.mockito.Mockito.mock(ToBeMocked.class, RETURNS_DEEP_STUBS)\")",
+            "perplexity": 1.036723490579844,
+            "max_token_neglogp": 0.42936989665031433,
+            "response_improbability": 0.608471317133774
+        },
+        {
+            "content": "get_code_snippet_of_method(\"org.mockito.Mockito.mock(ToBeMocked.class)\")",
+            "perplexity": 1.0624937640446386,
+            "max_token_neglogp": 0.4339604675769806,
+            "response_improbability": 0.683918851916751
+        },
+        {
+            "content": "exit()",
+            "perplexity": 1.2413241302572113,
+            "max_token_neglogp": 0.641726553440094,
+            "response_improbability": 0.47718937311130194
+        },
+        {
+            "content": "Top_1 : org.mockito.Mockito.mock(ToBeMocked.class)\nTop_2 : org.mockito.Mockito.mock(ToBeMocked.class, RETURNS_DEEP_STUBS)\nTop_3 : org.mockito.Mockito.mock(ToBeMocked.class, Answer)\nTop_4 : org.mockito.Mockito.mock(ToBeMocked.class, ReturnValues)\nTop_5 : org.mockito.Mockito.mock(ToBeMocked.class, MockSettings)",
+            "perplexity": 1.05667100591425,
+            "max_token_neglogp": 1.0382503271102905,
+            "response_improbability": 0.9933705267260844
+        }
+    ]
+}
